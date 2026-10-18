@@ -11,7 +11,7 @@ Built for the **Newtonite Software Engineering Assessment** by **Roll No: `23009
 ```mermaid
 flowchart TD
     subgraph Client ["Frontend Layer (React 18 + Vite + TS)"]
-        UI["Modern Dark UI (Seamless Bounce)"]
+        UI["Clean Dark UI"]
         Switcher["Role / Persona Switcher"]
         ConflictBanner["Concurrency Conflict Banner (409 Handler)"]
     end
@@ -46,7 +46,7 @@ flowchart TD
 ## ⚡ The 5 Non-CRUD Critical Behaviors
 
 1. **Atomic Concurrent Claim:** Prevents race conditions when two operators simultaneously claim an urgent unassigned issue. Uses conditional SQL updates (`WHERE assignee_id IS NULL`). The loser receives HTTP `409 Conflict`.
-2. **Optimistic Locking (Stale Edits):** Uses JPA `@Version` tokens. Any mutation submitted against an outdated version is blocked with HTTP `409 Conflict`, prompting the user to sync with the latest server state.
+2. **Optimistic Locking (Stale Edits):** Uses JPA `@Version` tokens. Any mutation submitted against an outdated version is blocked with HTTP `409 Conflict`, requiring the client to reconcile with the latest server state.
 3. **Idempotency Key Guard:** Protects mutating endpoints against network retries or accidental double-clicks using an `Idempotency-Key` header with cached response replay.
 4. **Role-Enforced Workflow State Machine:** Server-enforced status transitions (`OPEN` → `IN_PROGRESS` → `AWAITING_APPROVAL` → `RESOLVED` → `CLOSED`). Crucially, approving transitions (`AWAITING_APPROVAL` → `RESOLVED`) requires **Team Lead** or **Admin** privileges; attempts by standard members yield HTTP `403 Forbidden`.
 5. **Transactional Outbox Pattern:** Secondary actions (such as notifications) are committed as outbox jobs inside the primary ACID transaction, eliminating phantom events and delivering reliable at-least-once processing with retry backoff.

@@ -3,11 +3,9 @@
 @tailwind utilities;
 
 /*
-  Seamless React Bounce Rule:
-  1. Explicitly apply margin: 0; padding: 0; width: 100%; min-height: 100vh; to html, body, #root.
-  2. Set background-color on html, body, #root to a solid dark color (#0B0F17) to eliminate white bounce edges.
-  3. Apply gradients directly to #root (not html or body).
-  4. Do NOT disable overscroll-behavior-y so natural scrolling bounce works cleanly without flashing light backgrounds.
+  Global layout reset:
+  - Full viewport height and zero margin across root elements
+  - Solid dark background (#0B0F17) to prevent edge flash during overscroll bounce
 */
 html, body, #root {
   margin: 0;
