@@ -1,0 +1,86 @@
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: newtonite-ops-backend
+
+  profiles:
+    # Default to 'dev' profile so the application can run immediately with H2 in-memory
+    # if PostgreSQL container is not started. Pass --spring.profiles.active=postgres or
+    # SPRING_PROFILES_ACTIVE=postgres when running against Docker/Postgres.
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  jackson:
+    serialization:
+      # Write dates as standard ISO-8601 strings instead of epoch timestamps for easy frontend consumption
+      write-dates-as-timestamps: false
+      indent-output: true
+
+logging:
+  level:
+    root: INFO
+    com.newtonite.ops: DEBUG
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+---
+# ------------------------------------------------------------------
+# Profile: dev (H2 In-Memory Database with PostgreSQL Compatibility)
+# ------------------------------------------------------------------
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    # MODE=PostgreSQL allows H2 to accept standard PostgreSQL data types and syntax
+    url: jdbc:h2:mem:newtonite_ops;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+---
+# ------------------------------------------------------------------
+# Profile: postgres (Production / Docker PostgreSQL Database)
+# ------------------------------------------------------------------
+spring:
+  config:
+    activate:
+      on-profile: postgres
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/newtonite_ops}
+    username: ${SPRING_DATASOURCE_USERNAME:newtonite}
+    password: ${SPRING_DATASOURCE_PASSWORD:newtonite_password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
