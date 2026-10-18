@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Seamless React Bounce Rule:
+  1. Explicitly apply margin: 0; padding: 0; width: 100%; min-height: 100vh; to html, body, #root.
+  2. Set background-color on html, body, #root to a solid dark color (#0B0F17) to eliminate white bounce edges.
+  3. Apply gradients directly to #root (not html or body).
+  4. Do NOT disable overscroll-behavior-y so natural scrolling bounce works cleanly without flashing light backgrounds.
+*/
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #0B0F17;
+  color: #F3F4F6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  /* Subtle radial gradient on the root element for atmospheric depth without affecting bounce edges */
+  background-image: radial-gradient(circle at 50% 0%, #172033 0%, #0B0F17 60%);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar styling for modern dark interface */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0F17;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252e3e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
