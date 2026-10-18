@@ -50,6 +50,7 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
+                .details(ex.getDetails())
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }

@@ -140,4 +140,12 @@ public class TeamService {
         Optional<TeamMembership> membership = teamMembershipRepository.findByUserIdAndTeamId(userId, teamId);
         return membership.map(m -> m.getRole() == Role.LEAD || m.getRole() == Role.ADMIN).orElse(false);
     }
+
+    /**
+     * Checks if a user is an enrolled member of a team with any role.
+     */
+    @Transactional(readOnly = true)
+    public boolean isUserMemberOfTeam(UUID userId, UUID teamId) {
+        return teamMembershipRepository.findByUserIdAndTeamId(userId, teamId).isPresent();
+    }
 }

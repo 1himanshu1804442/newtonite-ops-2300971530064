@@ -87,13 +87,32 @@ public class WorkItemService {
     }
 
     /**
-     * Retrieves work item details by ID.
+     * Retrieves work item details by ID, checking team-level resource authorization if actor is specified.
+     */
+    @Transactional(readOnly = true)
+    public WorkItemResponse getWorkItemById(UUID id, UUID actorId) {
+        log.info("Fetching work item details for id: {} by actorId: {}", id, actorId);
+        WorkItem item = getWorkItemEntity(id);
+
+        if (actorId != null) {
+            User actor = userService.getUserEntity(actorId);
+            if (!teamService.isUserMemberOfTeam(actor.getId(), item.getTeam().getId())) {
+                log.error("Resource Authorization Violation: User {} does not belong to team {} for work item {}",
+                        actor.getEmail(), item.getTeam().getCode(), id);
+                throw new ForbiddenException("Access denied: User " + actor.getEmail() +
+                        " is not a member of team '" + item.getTeam().getName() + "'.");
+            }
+        }
+
+        return WorkItemResponse.fromEntity(item);
+    }
+
+    /**
+     * Retrieves work item details by ID without explicit actor check.
      */
     @Transactional(readOnly = true)
     public WorkItemResponse getWorkItemById(UUID id) {
-        log.info("Fetching work item details for id: {}", id);
-        WorkItem item = getWorkItemEntity(id);
-        return WorkItemResponse.fromEntity(item);
+        return getWorkItemById(id, null);
     }
 
     /**
@@ -168,13 +187,22 @@ public class WorkItemService {
         WorkItem item = getWorkItemEntity(id);
         User actor = userService.getUserEntity(request.getActorId());
 
+        // Team isolation check: user outside team cannot edit items
+        if (!teamService.isUserMemberOfTeam(actor.getId(), item.getTeam().getId())) {
+            log.error("Resource Authorization: User {} is not a member of team {} and cannot update work item {}",
+                    actor.getEmail(), item.getTeam().getCode(), id);
+            throw new ForbiddenException("Access denied: User " + actor.getEmail() +
+                    " is not a member of team '" + item.getTeam().getName() + "'.");
+        }
+
         // Optimistic concurrency check: ensure client's view matches database version
         if (request.getExpectedVersion() != null && !item.getVersion().equals(request.getExpectedVersion())) {
             throw new ConflictException(
                     "OPTIMISTIC_LOCK_CONFLICT",
                     "Version mismatch detected for work item " + id + ". Expected version " +
                             request.getExpectedVersion() + ", but current database version is " + item.getVersion() +
-                            ". Please refresh and reapply your changes."
+                            ". Please refresh and reapply your changes.",
+                    WorkItemResponse.fromEntity(item)
             );
         }
 
@@ -221,6 +249,14 @@ public class WorkItemService {
         log.info("Attempting atomic concurrent claim on work item id={} by user id={}", id, userId);
 
         User claimingUser = userService.getUserEntity(userId);
+        WorkItem existingItem = getWorkItemEntity(id);
+
+        if (!teamService.isUserMemberOfTeam(claimingUser.getId(), existingItem.getTeam().getId())) {
+            log.error("Resource Authorization Violation: User {} is not a member of team {} for claim on item {}",
+                    claimingUser.getEmail(), existingItem.getTeam().getCode(), id);
+            throw new ForbiddenException("Access denied: User " + claimingUser.getEmail() +
+                    " is not a member of team '" + existingItem.getTeam().getName() + "'.");
+        }
 
         // Execute atomic conditional database update
         int rowsUpdated = workItemRepository.claimWorkItemAtomic(id, claimingUser, LocalDateTime.now());
@@ -432,8 +468,7 @@ public class WorkItemService {
                 log.error("Access denied: User {} lacks LEAD or ADMIN role in team {} to perform transition to {}",
                         actor.getEmail(), item.getTeam().getCode(), target);
                 throw new ForbiddenException(
-                        "Approval and closure transitions (to " + target + ") require LEAD or ADMIN role in team '" +
-                                item.getTeam().getName() + "'."
+                        "Approval requires Team Lead or Admin privilege."
                 );
             }
         }

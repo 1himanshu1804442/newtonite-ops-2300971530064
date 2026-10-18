@@ -35,7 +35,9 @@ public interface WorkItemRepository extends JpaRepository<WorkItem, UUID>, JpaSp
      * @param now Current timestamp for updatedAt
      * @return Number of rows updated (1 if successfully claimed, 0 if already claimed or not found)
      */
-    @Modifying
+    // flushAutomatically = true flushes pending changes before the query runs.
+    // clearAutomatically = true clears Hibernate L1 persistence cache so subsequent findById reloads fresh entity.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE WorkItem w SET w.assignee = :user, w.version = w.version + 1, w.updatedAt = :now WHERE w.id = :id AND w.assignee IS NULL")
     int claimWorkItemAtomic(@Param("id") UUID id, @Param("user") User user, @Param("now") LocalDateTime now);
 

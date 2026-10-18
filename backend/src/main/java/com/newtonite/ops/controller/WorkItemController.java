@@ -62,9 +62,14 @@ public class WorkItemController {
      * Retrieves work item details by ID.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<WorkItemResponse> getWorkItem(@PathVariable UUID id) {
-        log.info("REST: GET /api/work-items/{}", id);
-        return ResponseEntity.ok(workItemService.getWorkItemById(id));
+    public ResponseEntity<WorkItemResponse> getWorkItem(
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID actorId,
+            @RequestHeader(value = "X-User-Id", required = false) UUID actorHeader
+    ) {
+        UUID effectiveActor = (actorId != null) ? actorId : actorHeader;
+        log.info("REST: GET /api/work-items/{} by actorId={}", id, effectiveActor);
+        return ResponseEntity.ok(workItemService.getWorkItemById(id, effectiveActor));
     }
 
     /**
