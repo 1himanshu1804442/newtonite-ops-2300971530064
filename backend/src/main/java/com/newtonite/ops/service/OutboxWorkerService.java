@@ -43,27 +43,37 @@ public class OutboxWorkerService {
      * @return Number of jobs processed in this cycle
      */
     public int processPendingJobs() {
-        List<OutboxJob> pendingJobs = outboxJobRepository.findByStatusAndAttemptsLessThanOrderByCreatedAtAsc(
-                OutboxStatus.PENDING,
-                MAX_ATTEMPTS,
-                PageRequest.of(0, BATCH_SIZE)
-        );
+        int totalProcessed = 0;
+        // Drain pending jobs in batches up to a safety limit of 100 to prevent starvation
+        while (totalProcessed < 100) {
+            List<OutboxJob> pendingJobs = outboxJobRepository.findByStatusAndAttemptsLessThanOrderByCreatedAtAsc(
+                    OutboxStatus.PENDING,
+                    MAX_ATTEMPTS,
+                    PageRequest.of(0, BATCH_SIZE)
+            );
 
-        if (pendingJobs.isEmpty()) {
-            return 0;
-        }
+            if (pendingJobs.isEmpty()) {
+                break;
+            }
 
-        log.info("Outbox worker discovered {} pending jobs to process", pendingJobs.size());
-        int processedCount = 0;
+            log.info("Outbox worker discovered {} pending jobs to process", pendingJobs.size());
+            int batchProcessed = 0;
 
-        for (OutboxJob job : pendingJobs) {
-            boolean success = processSingleJob(job);
-            if (success) {
-                processedCount++;
+            for (OutboxJob job : pendingJobs) {
+                boolean success = processSingleJob(job);
+                if (success) {
+                    batchProcessed++;
+                }
+            }
+
+            totalProcessed += batchProcessed;
+            // If no job succeeded in this batch, stop to avoid tight looping on unrecoverable errors
+            if (batchProcessed == 0) {
+                break;
             }
         }
 
-        return processedCount;
+        return totalProcessed;
     }
 
     /**
