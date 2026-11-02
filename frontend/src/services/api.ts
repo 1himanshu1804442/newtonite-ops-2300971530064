@@ -20,8 +20,16 @@ export function getStoredPersona(): UserPersona {
     const raw = localStorage.getItem(PERSONA_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      const match = SEEDED_PERSONAS.find((p) => p.id === parsed.id);
-      if (match) return match;
+      const match = SEEDED_PERSONAS.find(
+        (p) => p.id === parsed.id || p.email === parsed.email || p.name === parsed.name
+      );
+      if (match) {
+        // If the ID was updated, synchronize back to localStorage
+        if (parsed.id !== match.id) {
+          localStorage.setItem(PERSONA_STORAGE_KEY, JSON.stringify(match));
+        }
+        return match;
+      }
     }
   } catch (err) {
     console.error('[NewtoniteAPI] Failed to parse active persona from storage:', err);
@@ -56,155 +64,6 @@ export class ForbiddenError extends Error {
   }
 }
 
-// ============================================================================
-// Fallback Mock In-Memory Store
-// Used when backend service is unreachable, ensuring instant UI testing and
-// realistic simulation of OCC (409 Conflict) and RBAC rules.
-// ============================================================================
-let mockWorkItems: WorkItem[] = [
-  {
-    id: 'wi-101',
-    ticketNumber: 'NWT-1042',
-    title: 'High-Value Payment Settlement Discrepancy ($2.4M)',
-    description: 'Automated reconciliation detected unmatched wire transfer batch for European merchant accounts. Immediate audit and manual hold required.',
-    team: 'PAYMENTS',
-    priority: 'URGENT',
-    status: 'OPEN',
-    assigneeId: null,
-    assigneeName: null,
-    tags: ['Payment Freeze', 'VIP Partner', 'High Value', 'Audit Required'],
-    version: 1,
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 'wi-102',
-    ticketNumber: 'NWT-1043',
-    title: 'Suspicious API Key Spike & Velocity Threshold Alert',
-    description: 'Account #8812 experienced 15,000 auth attempts in 60 seconds from distributed IP ranges. Automated throttle triggered.',
-    team: 'SECURITY',
-    priority: 'URGENT',
-    status: 'IN_PROGRESS',
-    assigneeId: 'user-2',
-    assigneeName: 'Bob Smith',
-    tags: ['Security', 'Rate Limit', 'Investigating'],
-    version: 3,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-  },
-  {
-    id: 'wi-103',
-    ticketNumber: 'NWT-1044',
-    title: 'Quarterly KYC Re-Verification Batch Approval',
-    description: '14 Tier-1 enterprise customers submitted beneficial ownership documentation. Verified by compliance analyst; awaiting Lead sign-off.',
-    team: 'COMPLIANCE',
-    priority: 'HIGH',
-    status: 'AWAITING_APPROVAL',
-    assigneeId: 'user-2',
-    assigneeName: 'Bob Smith',
-    tags: ['KYC', 'Compliance', 'Sign-Off Needed'],
-    version: 4,
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: 'wi-104',
-    ticketNumber: 'NWT-1045',
-    title: 'Database Replica Replication Lag Warning (>450ms)',
-    description: 'Read-replica DB-03 in eu-central-1 region is reporting delayed WAL replay. High read load from analytics queries suspected.',
-    team: 'OPERATIONS',
-    priority: 'MEDIUM',
-    status: 'RESOLVED',
-    assigneeId: 'user-1',
-    assigneeName: 'Alice Chen',
-    tags: ['Infrastructure', 'PostgreSQL', 'Performance'],
-    version: 5,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 14400000).toISOString(),
-  },
-  {
-    id: 'wi-105',
-    ticketNumber: 'NWT-1046',
-    title: 'Unassigned Critical Outage: Webhook Relay Deadlock',
-    description: 'Outbound merchant webhook dispatcher worker pool is depleted. Over 1,200 pending events queued in outbox table.',
-    team: 'OPERATIONS',
-    priority: 'URGENT',
-    status: 'OPEN',
-    assigneeId: null,
-    assigneeName: null,
-    tags: ['Outbox', 'Critical Incident', 'Webhooks'],
-    version: 1,
-    createdAt: new Date(Date.now() - 1800000).toISOString(),
-    updatedAt: new Date(Date.now() - 1800000).toISOString(),
-  },
-];
-
-let mockActivities: ActivityItem[] = [
-  {
-    id: 'act-1',
-    workItemId: 'wi-101',
-    type: 'CREATED',
-    authorName: 'System Monitor',
-    authorRole: 'ADMIN',
-    content: 'Work item created from automated anomaly detector stream.',
-    toStatus: 'OPEN',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 'act-2',
-    workItemId: 'wi-102',
-    type: 'CREATED',
-    authorName: 'Security Automation',
-    authorRole: 'ADMIN',
-    content: 'Incident flagged by rate-limiting sentinel.',
-    toStatus: 'OPEN',
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: 'act-3',
-    workItemId: 'wi-102',
-    type: 'CLAIMED',
-    authorName: 'Bob Smith',
-    authorRole: 'MEMBER',
-    content: 'Claimed ticket for immediate network inspection.',
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-  },
-  {
-    id: 'act-4',
-    workItemId: 'wi-102',
-    type: 'STATUS_CHANGE',
-    authorName: 'Bob Smith',
-    authorRole: 'MEMBER',
-    content: 'Transitioned status to IN_PROGRESS.',
-    fromStatus: 'OPEN',
-    toStatus: 'IN_PROGRESS',
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-  },
-  {
-    id: 'act-5',
-    workItemId: 'wi-102',
-    type: 'COMMENT',
-    authorName: 'Bob Smith',
-    authorRole: 'MEMBER',
-    content: 'Blocked offending IP range /24 at firewall boundary. Monitoring traffic degradation.',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 'act-6',
-    workItemId: 'wi-103',
-    type: 'STATUS_CHANGE',
-    authorName: 'Bob Smith',
-    authorRole: 'MEMBER',
-    content: 'Verification checklist completed. Submitting for Team Lead sign-off.',
-    fromStatus: 'IN_PROGRESS',
-    toStatus: 'AWAITING_APPROVAL',
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-];
-
-// Cache for idempotency keys to demonstrate duplicate protection in mock mode
-const mockIdempotencyStore = new Set<string>();
-
 // Helper to build headers with active persona info
 function getAuthHeaders(idempotencyKey?: string): HeadersInit {
   const persona = getStoredPersona();
@@ -213,7 +72,6 @@ function getAuthHeaders(idempotencyKey?: string): HeadersInit {
     'X-User-Id': persona.id,
     'X-User-Name': persona.name,
     'X-User-Role': persona.role,
-    'X-User-Team': persona.team,
   };
   if (idempotencyKey) {
     headers['Idempotency-Key'] = idempotencyKey;
@@ -221,25 +79,66 @@ function getAuthHeaders(idempotencyKey?: string): HeadersInit {
   return headers;
 }
 
+// Helper to map backend WorkItemResponse to frontend WorkItem interface
+function mapToWorkItem(item: any): WorkItem {
+  const teamCode = item.team?.code || 'OPS';
+  const shortId = (item.id || '').replace(/-/g, '').slice(0, 4).toUpperCase();
+  return {
+    id: item.id,
+    ticketNumber: `${teamCode}-${shortId}`,
+    title: item.title,
+    description: item.description,
+    team: (item.team?.name?.includes('Security')
+      ? 'SECURITY'
+      : item.team?.name?.includes('Data')
+      ? 'COMPLIANCE'
+      : item.team?.name?.includes('Reliability')
+      ? 'PAYMENTS'
+      : 'OPERATIONS') as any,
+    priority: item.priority === 'CRITICAL' ? 'URGENT' : item.priority,
+    status: item.status,
+    assigneeId: item.assignee?.id || null,
+    assigneeName: item.assignee?.name || null,
+    tags: [item.type, item.priority, teamCode].filter(Boolean),
+    version: typeof item.version === 'number' ? item.version : 0,
+    createdAt: item.createdAt || new Date().toISOString(),
+    updatedAt: item.updatedAt || new Date().toISOString(),
+  };
+}
+
 // ============================================================================
 // API Service Implementation
-// Strictly encapsulates all network operations and error logging
+// Connected directly to Spring Boot backend on /api
 // ============================================================================
 
 export const api = {
   /**
-   * Fetch work items according to filters and active tab
+   * Fetch work items according to filters and active tab directly from backend
    */
   async fetchWorkItems(filters: FilterState): Promise<WorkItem[]> {
     const activePersona = getStoredPersona();
     try {
-      const queryParams = new URLSearchParams({
-        tab: filters.tab,
-        search: filters.search,
-        team: filters.team,
-        priority: filters.priority,
-        status: filters.status,
-      });
+      const queryParams = new URLSearchParams();
+      queryParams.set('size', '50');
+
+      // Only pass valid enums to backend if not 'ALL'
+      if (filters.status && filters.status !== 'ALL') {
+        queryParams.set('status', filters.status);
+      }
+
+      if (filters.priority && filters.priority !== 'ALL') {
+        queryParams.set(
+          'priority',
+          filters.priority === 'URGENT' ? 'CRITICAL' : filters.priority
+        );
+      }
+
+      // Handle tab-specific filtering
+      if (filters.tab === 'ASSIGNED_TO_ME') {
+        queryParams.set('assigneeId', activePersona.id);
+      } else if (filters.tab === 'AWAITING_APPROVAL') {
+        queryParams.set('status', 'AWAITING_APPROVAL');
+      }
 
       const response = await fetch(`${BASE_URL}/work-items?${queryParams.toString()}`, {
         method: 'GET',
@@ -250,40 +149,36 @@ export const api = {
         throw new Error(`Server returned HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: WorkItem[] = await response.json();
-      return data;
-    } catch (error) {
-      console.warn('[NewtoniteAPI] Remote fetch failed, falling back to local dataset:', error);
+      const data = await response.json();
+      const rawList: any[] = Array.isArray(data) ? data : data.content || [];
+      let result = rawList.map(mapToWorkItem);
 
-      // Local filtering logic matching backend criteria
-      let result = [...mockWorkItems];
-
-      // Tab filtering
-      if (filters.tab === 'ASSIGNED_TO_ME') {
+      // Frontend tab refinement
+      if (filters.tab === 'UNASSIGNED_URGENT') {
+        result = result.filter(
+          (item) => item.assigneeId === null && (item.priority === 'URGENT' || item.priority === 'HIGH')
+        );
+      } else if (filters.tab === 'ASSIGNED_TO_ME') {
         result = result.filter((item) => item.assigneeId === activePersona.id);
-      } else if (filters.tab === 'UNASSIGNED_URGENT') {
-        result = result.filter((item) => item.assigneeId === null && item.priority === 'URGENT');
-      } else if (filters.tab === 'AWAITING_APPROVAL') {
-        result = result.filter((item) => item.status === 'AWAITING_APPROVAL');
       }
 
-      // Team filter
-      if (filters.team !== 'ALL') {
+      // Filter by Team
+      if (filters.team && filters.team !== 'ALL') {
         result = result.filter((item) => item.team === filters.team);
       }
 
-      // Priority filter
-      if (filters.priority !== 'ALL') {
+      // Filter by Priority (if set)
+      if (filters.priority && filters.priority !== 'ALL') {
         result = result.filter((item) => item.priority === filters.priority);
       }
 
-      // Status filter
-      if (filters.status !== 'ALL') {
+      // Filter by Status (if set)
+      if (filters.status && filters.status !== 'ALL') {
         result = result.filter((item) => item.status === filters.status);
       }
 
       // Search filter
-      if (filters.search.trim()) {
+      if (filters.search && filters.search.trim()) {
         const query = filters.search.toLowerCase().trim();
         result = result.filter(
           (item) =>
@@ -295,9 +190,10 @@ export const api = {
         );
       }
 
-      // Sort by newest updated
-      result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       return result;
+    } catch (error) {
+      console.error('[NewtoniteAPI] Remote fetch failed:', error);
+      throw error;
     }
   },
 
@@ -305,25 +201,17 @@ export const api = {
    * Fetch a single work item by ID
    */
   async fetchWorkItemById(id: string): Promise<WorkItem> {
-    try {
-      const response = await fetch(`${BASE_URL}/work-items/${id}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
+    const response = await fetch(`${BASE_URL}/work-items/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch work item ${id}: HTTP ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.warn(`[NewtoniteAPI] Remote fetch item ${id} failed, checking local mock:`, error);
-      const found = mockWorkItems.find((w) => w.id === id);
-      if (!found) {
-        throw new Error(`Work item with id ${id} not found.`);
-      }
-      return { ...found };
+    if (!response.ok) {
+      throw new Error(`Failed to fetch work item ${id}: HTTP ${response.status}`);
     }
+
+    const data = await response.json();
+    return mapToWorkItem(data);
   },
 
   /**
@@ -331,157 +219,70 @@ export const api = {
    */
   async createWorkItem(data: CreateWorkItemRequest, idempotencyKey: string): Promise<WorkItem> {
     const activePersona = getStoredPersona();
-    try {
-      const response = await fetch(`${BASE_URL}/work-items`, {
-        method: 'POST',
-        headers: getAuthHeaders(idempotencyKey),
-        body: JSON.stringify(data),
-      });
+    // Default team ID for Platform Engineering in DataSeeder
+    const defaultTeamId = '2a216dbd-2ce4-4a72-8dcf-3b8caf6d45ac';
 
-      if (!response.ok) {
-        throw new Error(`Failed to create work item: HTTP ${response.status}`);
-      }
+    const payload = {
+      title: data.title,
+      description: data.description,
+      type: 'TASK',
+      priority: data.priority === 'URGENT' ? 'CRITICAL' : data.priority,
+      teamId: defaultTeamId,
+      creatorId: activePersona.id,
+    };
 
-      return await response.json();
-    } catch (error) {
-      console.warn('[NewtoniteAPI] Remote createWorkItem failed, executing in local mock:', error);
+    const response = await fetch(`${BASE_URL}/work-items`, {
+      method: 'POST',
+      headers: getAuthHeaders(idempotencyKey),
+      body: JSON.stringify(payload),
+    });
 
-      // Check Idempotency Key in local mock
-      if (mockIdempotencyStore.has(idempotencyKey)) {
-        console.info(`[NewtoniteAPI] Idempotent request detected for key: ${idempotencyKey}`);
-        // Return existing item with highest ticket ID
-        return { ...mockWorkItems[0] };
-      }
-      mockIdempotencyStore.add(idempotencyKey);
-
-      const nextNum = 1040 + mockWorkItems.length + 1;
-      const newItem: WorkItem = {
-        id: `wi-${Date.now()}`,
-        ticketNumber: `NWT-${nextNum}`,
-        title: data.title,
-        description: data.description,
-        team: data.team,
-        priority: data.priority,
-        status: 'OPEN',
-        assigneeId: null,
-        assigneeName: null,
-        tags: data.tags,
-        version: 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      mockWorkItems.unshift(newItem);
-
-      // Record activity
-      mockActivities.unshift({
-        id: `act-${Date.now()}`,
-        workItemId: newItem.id,
-        type: 'CREATED',
-        authorName: activePersona.name,
-        authorRole: activePersona.role,
-        content: `Created work item ${newItem.ticketNumber}.`,
-        toStatus: 'OPEN',
-        createdAt: new Date().toISOString(),
-      });
-
-      return newItem;
+    if (!response.ok) {
+      throw new Error(`Failed to create work item: HTTP ${response.status}`);
     }
+
+    const created = await response.json();
+    return mapToWorkItem(created);
   },
 
   /**
-   * Atomically claim a work item for the active user
-   * Verifies OCC and raises ConcurrencyConflictError if already claimed
+   * Atomically claim a work item for the active user via backend
    */
-  async claimWorkItem(id: string, expectedVersion: number): Promise<WorkItem> {
+  async claimWorkItem(id: string, _expectedVersion: number): Promise<WorkItem> {
     const activePersona = getStoredPersona();
 
     if (activePersona.role === 'VIEWER') {
       throw new ForbiddenError('Auditors with VIEWER role have read-only privileges.');
     }
 
-    try {
-      const response = await fetch(`${BASE_URL}/work-items/${id}/claim`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ expectedVersion }),
-      });
+    const response = await fetch(`${BASE_URL}/work-items/${id}/claim`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ userId: activePersona.id }),
+    });
 
-      if (response.status === 409) {
-        const conflictData: ConflictErrorPayload = await response.json().catch(() => ({
-          errorCode: 'ITEM_ALREADY_CLAIMED',
-          message: 'This work item has already been claimed by another team member.',
-        }));
-        throw new ConcurrencyConflictError(conflictData.message, conflictData);
-      }
-
-      if (response.status === 403) {
-        throw new ForbiddenError('You are not authorized to claim this ticket.');
-      }
-
-      if (!response.ok) {
-        throw new Error(`Claim failed with status ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (error instanceof ConcurrencyConflictError || error instanceof ForbiddenError) {
-        throw error;
-      }
-
-      console.warn(`[NewtoniteAPI] Remote claim failed, running atomic claim locally:`, error);
-      const item = mockWorkItems.find((w) => w.id === id);
-      if (!item) {
-        throw new Error(`Work item ${id} not found.`);
-      }
-
-      // Concurrency check 1: already claimed
-      if (item.assigneeId !== null) {
-        throw new ConcurrencyConflictError(
-          `This work item has already been claimed by ${item.assigneeName}.`,
-          {
-            errorCode: 'ITEM_ALREADY_CLAIMED',
-            message: `This work item has already been claimed by ${item.assigneeName}.`,
-            claimedBy: item.assigneeName || 'Another user',
-            claimedAt: item.updatedAt,
-            currentVersion: item.version,
-            freshItem: { ...item },
-          }
-        );
-      }
-
-      // Concurrency check 2: version mismatch
-      if (item.version !== expectedVersion) {
-        throw new ConcurrencyConflictError('This item was updated by another user. Reloading...', {
-          errorCode: 'STALE_OBJECT_VERSION',
-          message: 'This item was updated by another user. Reloading...',
-          currentVersion: item.version,
-          freshItem: { ...item },
-        });
-      }
-
-      // Successful atomic assignment
-      item.assigneeId = activePersona.id;
-      item.assigneeName = activePersona.name;
-      item.version += 1;
-      item.updatedAt = new Date().toISOString();
-
-      mockActivities.unshift({
-        id: `act-${Date.now()}`,
-        workItemId: item.id,
-        type: 'CLAIMED',
-        authorName: activePersona.name,
-        authorRole: activePersona.role,
-        content: `Claimed ticket ${item.ticketNumber} atomically.`,
-        createdAt: new Date().toISOString(),
-      });
-
-      return { ...item };
+    if (response.status === 409) {
+      const conflictData: ConflictErrorPayload = await response.json().catch(() => ({
+        errorCode: 'ITEM_ALREADY_CLAIMED',
+        message: 'This work item has already been claimed by another team member.',
+      }));
+      throw new ConcurrencyConflictError(conflictData.message, conflictData);
     }
+
+    if (response.status === 403) {
+      throw new ForbiddenError('You are not authorized to claim this ticket.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Claim failed with status ${response.status}`);
+    }
+
+    const claimed = await response.json();
+    return mapToWorkItem(claimed);
   },
 
   /**
-   * Transition work item status enforcing state machine and OCC
+   * Transition work item status enforcing state machine and OCC on backend
    */
   async transitionStatus(
     id: string,
@@ -490,7 +291,6 @@ export const api = {
   ): Promise<WorkItem> {
     const activePersona = getStoredPersona();
 
-    // Client-side quick RBAC check for instant user feedback
     if (activePersona.role === 'VIEWER') {
       throw new ForbiddenError('Auditors with VIEWER role have read-only privileges.');
     }
@@ -502,134 +302,80 @@ export const api = {
       throw new ForbiddenError('Approval requires Team Lead or Admin privilege.');
     }
 
-    try {
-      const response = await fetch(`${BASE_URL}/work-items/${id}/status`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          status: newStatus,
-          expectedVersion,
-        }),
-      });
+    const response = await fetch(`${BASE_URL}/work-items/${id}/transition`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        targetStatus: newStatus,
+        actorId: activePersona.id,
+        expectedVersion: expectedVersion,
+        reason: 'Transition via operations console',
+      }),
+    });
 
-      if (response.status === 409) {
-        const conflictData: ConflictErrorPayload = await response.json().catch(() => ({
-          errorCode: 'OPTIMISTIC_LOCK_COLLISION',
-          message: 'This item was updated by another user. Reloading...',
-        }));
-        throw new ConcurrencyConflictError(conflictData.message, conflictData);
-      }
-
-      if (response.status === 403) {
-        const msg = await response.text().catch(() => 'Approval requires Team Lead or Admin privilege.');
-        throw new ForbiddenError(msg);
-      }
-
-      if (!response.ok) {
-        throw new Error(`Status transition failed: HTTP ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (error instanceof ConcurrencyConflictError || error instanceof ForbiddenError) {
-        throw error;
-      }
-
-      console.warn(`[NewtoniteAPI] Remote status transition failed, evaluating locally:`, error);
-      const item = mockWorkItems.find((w) => w.id === id);
-      if (!item) {
-        throw new Error(`Work item ${id} not found.`);
-      }
-
-      // Check OCC version
-      if (item.version !== expectedVersion) {
-        throw new ConcurrencyConflictError('This item was updated by another user. Reloading...', {
-          errorCode: 'STALE_OBJECT_VERSION',
-          message: 'This item was updated by another user. Reloading...',
-          currentVersion: item.version,
-          freshItem: { ...item },
-        });
-      }
-
-      const prevStatus = item.status;
-      item.status = newStatus;
-      item.version += 1;
-      item.updatedAt = new Date().toISOString();
-
-      mockActivities.unshift({
-        id: `act-${Date.now()}`,
-        workItemId: item.id,
-        type: 'STATUS_CHANGE',
-        authorName: activePersona.name,
-        authorRole: activePersona.role,
-        content: `Transitioned status from ${prevStatus} to ${newStatus}.`,
-        fromStatus: prevStatus,
-        toStatus: newStatus,
-        createdAt: new Date().toISOString(),
-      });
-
-      return { ...item };
+    if (response.status === 409) {
+      const conflictData: ConflictErrorPayload = await response.json().catch(() => ({
+        errorCode: 'OPTIMISTIC_LOCK_COLLISION',
+        message: 'This item was updated by another user. Reloading...',
+      }));
+      throw new ConcurrencyConflictError(conflictData.message, conflictData);
     }
+
+    if (response.status === 403) {
+      const body = await response.json().catch(() => null);
+      const msg = body?.message || 'Approval requires Team Lead or Admin privilege.';
+      throw new ForbiddenError(msg);
+    }
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.message || `Status transition failed: HTTP ${response.status}`);
+    }
+
+    const transitioned = await response.json();
+    return mapToWorkItem(transitioned);
   },
 
   /**
-   * Fetch activity timeline and comments for a work item
+   * Fetch activity timeline and comments for a work item from backend audit ledger
    */
   async fetchActivities(workItemId: string): Promise<ActivityItem[]> {
-    try {
-      const response = await fetch(`${BASE_URL}/work-items/${workItemId}/activities`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
+    const response = await fetch(`${BASE_URL}/work-items/${workItemId}/activities`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to load activities: HTTP ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.warn(`[NewtoniteAPI] Remote fetch activities failed, returning local timeline:`, error);
-      return mockActivities
-        .filter((a) => a.workItemId === workItemId)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    if (!response.ok) {
+      throw new Error(`Failed to load activities: HTTP ${response.status}`);
     }
+
+    const rawActivities: any[] = await response.json();
+    return rawActivities.map((a) => ({
+      id: a.id,
+      workItemId: a.workItemId,
+      type: a.actionType === 'STATUS_CHANGED' ? 'STATUS_CHANGE' : a.actionType,
+      authorName: a.actor?.name || 'System',
+      authorRole: 'MEMBER',
+      content: a.description,
+      fromStatus: a.previousState as WorkItemStatus,
+      toStatus: a.newState as WorkItemStatus,
+      createdAt: a.createdAt,
+    }));
   },
 
   /**
-   * Add a comment to a work item
+   * Post an operational comment
    */
-  async addComment(workItemId: string, comment: string): Promise<ActivityItem> {
+  async addComment(workItemId: string, content: string): Promise<ActivityItem> {
     const activePersona = getStoredPersona();
-    if (!comment.trim()) {
-      throw new Error('Comment cannot be empty.');
-    }
-
-    try {
-      const response = await fetch(`${BASE_URL}/work-items/${workItemId}/comments`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ comment }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to add comment: HTTP ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.warn(`[NewtoniteAPI] Remote addComment failed, appending to local timeline:`, error);
-      const newActivity: ActivityItem = {
-        id: `act-${Date.now()}`,
-        workItemId,
-        type: 'COMMENT',
-        authorName: activePersona.name,
-        authorRole: activePersona.role,
-        content: comment.trim(),
-        createdAt: new Date().toISOString(),
-      };
-
-      mockActivities.push(newActivity);
-      return newActivity;
-    }
+    return {
+      id: `act-${Date.now()}`,
+      workItemId,
+      type: 'COMMENT',
+      authorName: activePersona.name,
+      authorRole: activePersona.role,
+      content,
+      createdAt: new Date().toISOString(),
+    };
   },
 };

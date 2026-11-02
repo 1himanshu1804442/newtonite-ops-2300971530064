@@ -93,16 +93,16 @@ npm run dev
 
 ## 👥 Seeded Demo Personas (Role Simulation)
 
-The platform comes pre-seeded with 4 teams (*Engineering*, *Payments*, *Compliance*, *Operations*) and users in different roles. Use the **Persona Switcher** in the UI header to test permissions instantly:
+The platform comes pre-seeded with 4 teams (*Platform Engineering*, *Site Reliability Engineering*, *Security Operations*, *Data Infrastructure*) and users in different roles. Use the **Persona Switcher** in the UI header to test permissions instantly:
 
 | Name | Email | Team | Role | Purpose / What to Test |
 | :--- | :--- | :--- | :--- | :--- |
-| **Sarah Chen** | `sarah.chen@company.com` | Engineering | **LEAD** | Can approve `AWAITING_APPROVAL` tickets to `RESOLVED`. |
-| **Alex Rivera** | `alex.rivera@company.com` | Engineering | **MEMBER** | Can create, claim, and work on tickets; cannot approve. |
-| **Elena Rostova** | `elena.rostova@company.com` | Payments | **LEAD** | Lead for Payments team; can approve payment investigations. |
-| **Marcus Vance** | `marcus.vance@company.com` | Compliance | **LEAD** | Lead for Compliance team. |
-| **David Kim** | `david.kim@company.com` | Operations | **VIEWER** | Read-only access; mutations yield `403 Forbidden`. |
-| **System Admin** | `admin@company.com` | Global | **ADMIN** | Superuser with cross-team privileges. |
+| **Elena Rostova** | `elena.rostova@newtonite.io` | Platform Eng (`ENG-PLAT`) | **LEAD** | Can approve `AWAITING_APPROVAL` tickets to `RESOLVED` for Platform items. |
+| **Marcus Chen** | `marcus.chen@newtonite.io` | Platform Eng (`ENG-PLAT`) | **MEMBER** | Can create, claim, and work on tickets; cannot approve to `RESOLVED`. |
+| **Priya Sharma** | `priya.sharma@newtonite.io` | Security Ops (`SEC-OPS`) | **LEAD** | Lead for Security team; can approve critical security & compliance incidents. |
+| **James Wilson** | `james.wilson@newtonite.io` | Security Ops (`SEC-OPS`) | **VIEWER** | Read-only access; mutation controls disabled. |
+| **Sarah Connor** | `sarah.connor@newtonite.io` | SRE Core (`SRE-CORE`) | **ADMIN** | SRE Reliability Admin with cross-lifecycle operational access. |
+| **Alex Rivera** | `alex.rivera@newtonite.io` | Platform Eng (`ENG-PLAT`) | **ADMIN** | Global Admin with administrative rights across all team domains. |
 
 ---
 
@@ -125,14 +125,14 @@ mvn test
 ---
 
 ## 📋 Engineering Decisions & Trade-offs
-Detailed architectural justifications, options evaluated, and trade-offs are documented in [**`ENGINEERING_DECISIONS.md`**](file:///C:/Users/hy180/projects/newtonite-ops-2300971530064/ENGINEERING_DECISIONS.md).
+Detailed architectural justifications, options evaluated, and trade-offs are documented in [**`ENGINEERING_DECISIONS.md`**](./ENGINEERING_DECISIONS.md).
 
 ---
 
 ## ⚠️ Known Limitations
-1. **Outbox Polling Delay:** Default polling interval is 5 seconds. In high-throughput production (>100k events/min), this should be augmented with PostgreSQL `LISTEN/NOTIFY` or Apache Kafka.
-2. **Stateless JWT Tokens:** Authentication utilizes bearer tokens for quick demonstration. Revocation is handled on client logout rather than a distributed Redis blacklist.
-3. **Search Engine:** Text filtering uses PostgreSQL indexing and case-insensitive matching; ultra-large volume search would benefit from OpenSearch/Elasticsearch.
+1. **Outbox Polling Delay:** Default polling interval is 5 seconds. In high-throughput production (>100k events/min), this should be augmented with PostgreSQL `LISTEN/NOTIFY` or Apache Kafka, and workers should use `FOR UPDATE SKIP LOCKED`.
+2. **Header-Based Identity Context:** Authentication utilizes client-supplied `X-User-Id` and `X-User-Role` headers for demonstration and rapid triage switching. In production, this would be replaced with Spring Security and cryptographically signed JWT tokens.
+3. **Search Engine:** Text filtering uses PostgreSQL `ILIKE` and indexing. For large-scale production volume, PostgreSQL Full-Text Search (`tsvector`) or OpenSearch would be preferred.
 
 ---
 

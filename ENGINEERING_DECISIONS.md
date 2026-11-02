@@ -33,13 +33,15 @@ UPDATE work_items
 SET assignee_id = :userId, version = version + 1, updated_at = :now 
 WHERE id = :id AND assignee_id IS NULL;
 ```
-If the affected row count is `0`, the service throws a `WorkItemAlreadyClaimedException`, which the `@ControllerAdvice` global handler maps to HTTP `409 Conflict` with a structured payload:
+If the affected row count is `0`, the service throws a `ConflictException` with error code `CONCURRENT_CLAIM_CONFLICT`, which the `@ControllerAdvice` global handler maps to HTTP `409 Conflict`:
 ```json
 {
-  "errorCode": "ITEM_ALREADY_CLAIMED",
-  "message": "This work item has already been claimed by another team member.",
-  "claimedBy": "Jane Doe",
-  "claimedAt": "2026-10-18T14:10:00Z"
+  "status": 409,
+  "error": "Conflict",
+  "errorCode": "CONCURRENT_CLAIM_CONFLICT",
+  "message": "Work item has already been claimed by another user",
+  "path": "/api/work-items/{id}/claim",
+  "timestamp": "2026-11-02T18:40:00"
 }
 ```
 
@@ -83,7 +85,7 @@ In high-pressure operational environments with flaky network connections or rest
    - *Pros:* Standardized enterprise architecture (Stripe/IETF standard). Safe for retries.
 
 ### Decision & Implementation
-Clients submit a unique `Idempotency-Key` (UUIDv4) header with mutating requests (`POST /api/items`).
+Clients submit a unique `Idempotency-Key` (UUIDv4) header with mutating requests (`POST /api/work-items`).
 A Spring HTTP Interceptor / Service checks the `idempotency_records` table:
 - If key does not exist: Execute request inside transaction, record the resulting HTTP status and serialized response body along with the key.
 - If key exists: Return the cached response body and status code immediately without re-executing business logic or creating duplicate records.
@@ -139,7 +141,7 @@ We write an `OutboxJob` record in the primary transaction:
 INSERT INTO outbox_jobs (id, event_type, payload, status, attempts, created_at)
 VALUES (:id, 'WORK_ITEM_STATUS_CHANGED', :jsonPayload, 'PENDING', 0, NOW());
 ```
-A lightweight `@Scheduled` worker continuously queries pending jobs using `SELECT ... FOR UPDATE SKIP LOCKED` (or status polling), processes them with idempotent handlers, and increments attempt counts with exponential backoff on failure (capped at 5 attempts before marking `FAILED`).
+A lightweight `@Scheduled` worker continuously queries pending jobs every 5 seconds, processes them with idempotent handlers, and increments attempt counts on failure (capped at 5 attempts before marking `FAILED`). In a multi-worker production cluster, this would be upgraded with `SELECT ... FOR UPDATE SKIP LOCKED` and exponential backoff.
 
 ### Trade-offs
 - **Trade-off:** Adds slight latency (polling interval) compared to immediate websockets, but eliminates distributed inconsistencies and data loss without requiring external queue infrastructure like Kafka or RabbitMQ.
@@ -156,5 +158,5 @@ To deliver high engineering depth on correctness within the one-day timeframe:
 
 ## Known Limitations
 1. **Outbox Polling Delay:** Default polling interval is 5 seconds. In large scale deployments (>100k events/min), this should transition to PostgreSQL `LISTEN/NOTIFY` or an event bus like Kafka.
-2. **In-Memory JWT vs Stateful Session:** Tokens are signed statelessly; immediate token invalidation requires a distributed Redis blocklist if implemented at enterprise scale.
+2. **Header-Based Identity Context vs Full JWT:** Current implementation uses `X-User-Id` request headers for deterministic role evaluation; enterprise production environments should introduce Spring Security with cryptographically signed JWT tokens.
 3. **Text Search:** Implemented using PostgreSQL `ILIKE` and indexing. For millions of documents, PostgreSQL Full-Text Search (`tsvector`) or OpenSearch would be preferred.
