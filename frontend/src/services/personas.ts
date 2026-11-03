@@ -1,9 +1,9 @@
 import { UserPersona } from '../types';
 
-// Pre-seeded personas matching backend PostgreSQL DataSeeder exactly
+// Pre-seeded personas matching backend DataSeeder exactly
 export const SEEDED_PERSONAS: UserPersona[] = [
   {
-    id: '3c08224f-6862-45fa-aa35-0e01614593c1',
+    id: '9f6b8384-35a1-4963-949d-f85177d162bf',
     name: 'Elena Rostova',
     email: 'elena.rostova@newtonite.io',
     role: 'LEAD',
@@ -12,7 +12,7 @@ export const SEEDED_PERSONAS: UserPersona[] = [
     description: 'Platform Engineering Lead (Full review & approval permissions for Platform)',
   },
   {
-    id: 'e3107915-d5cf-44fe-aeb3-aec600722ca5',
+    id: '1c435d43-93ec-440d-beb3-66b6fcc07eb7',
     name: 'Marcus Chen',
     email: 'marcus.chen@newtonite.io',
     role: 'MEMBER',
@@ -21,7 +21,7 @@ export const SEEDED_PERSONAS: UserPersona[] = [
     description: 'Platform Specialist (Can claim and work on items; requires Lead approval to resolve)',
   },
   {
-    id: '6776d326-fc6b-4a3b-bdb6-02cde94b0488',
+    id: 'd1d02db7-3b03-499e-b647-b49b2decb049',
     name: 'James Wilson',
     email: 'james.wilson@newtonite.io',
     role: 'VIEWER',
@@ -30,7 +30,7 @@ export const SEEDED_PERSONAS: UserPersona[] = [
     description: 'Security Operations Auditor (Read-only observer; mutation controls disabled)',
   },
   {
-    id: 'd38e8291-6df7-4c14-a8c3-17e6b228af28',
+    id: '36b7470c-fa49-46f2-89dd-75be7f02ece3',
     name: 'Priya Sharma',
     email: 'priya.sharma@newtonite.io',
     role: 'LEAD',
@@ -39,7 +39,7 @@ export const SEEDED_PERSONAS: UserPersona[] = [
     description: 'Security Operations Lead (Approves critical security & compliance incidents)',
   },
   {
-    id: '0e678d13-eac0-487d-99f6-b1126709661a',
+    id: 'b9c1115c-0cbc-44f2-96ac-57c009eb175d',
     name: 'Alex Rivera',
     email: 'alex.rivera@newtonite.io',
     role: 'ADMIN',
@@ -48,7 +48,7 @@ export const SEEDED_PERSONAS: UserPersona[] = [
     description: 'Global Engineering Admin (Full administrative rights across all team domains)',
   },
   {
-    id: '5ebc80da-3c57-432d-83ec-342ff2f9cf10',
+    id: '5eb66c45-95d1-43aa-a5bc-49ef0a399fa3',
     name: 'Sarah Connor',
     email: 'sarah.connor@newtonite.io',
     role: 'ADMIN',

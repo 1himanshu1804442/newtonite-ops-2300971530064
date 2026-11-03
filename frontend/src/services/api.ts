@@ -111,11 +111,33 @@ function mapToWorkItem(item: any): WorkItem {
 // Connected directly to Spring Boot backend on /api
 // ============================================================================
 
+// Auto-sync personas from backend /api/users to ensure UUIDs always match current DB
+let personasSynced = false;
+async function syncPersonasFromBackend(): Promise<void> {
+  if (personasSynced) return;
+  try {
+    const res = await fetch(`${BASE_URL}/users`);
+    if (res.ok) {
+      const users: Array<{ id: string; email: string }> = await res.json();
+      for (const u of users) {
+        const match = SEEDED_PERSONAS.find((p) => p.email.toLowerCase() === u.email.toLowerCase());
+        if (match) {
+          match.id = u.id;
+        }
+      }
+      personasSynced = true;
+    }
+  } catch (err) {
+    // Non-blocking fallback
+  }
+}
+
 export const api = {
   /**
    * Fetch work items according to filters and active tab directly from backend
    */
   async fetchWorkItems(filters: FilterState): Promise<WorkItem[]> {
+    await syncPersonasFromBackend();
     const activePersona = getStoredPersona();
     try {
       const queryParams = new URLSearchParams();
